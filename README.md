@@ -1,5 +1,7 @@
 # PCSX2 for PS4
 
+
+
 ## About the Project
 
 This project is developing a **PlayStation 2 emulator for PlayStation 4**, based on the open-source **PCSX2** codebase. The goal is to allow PS2 games to run locally on the PS4, with all processing and rendering performed directly by the console.
@@ -21,3 +23,5 @@ Port PCSX2 so that it can run as a native homebrew application on the PS4 using 
 
 https://github.com/user-attachments/assets/e48dccb5-cc8f-41e9-aa6f-295ed41142f7
 
+
+https://github.com/user-attachments/assets/9d1bb0de-8055-4770-86a0-1e711ff021e8
