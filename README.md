@@ -15,3 +15,9 @@ This is an independent project and is not officially affiliated with Sony or the
 ## Objective
 
 Port PCSX2 so that it can run as a native homebrew application on the PS4 using OpenOrbis and open-source libraries.
+
+
+
+
+https://github.com/user-attachments/assets/e48dccb5-cc8f-41e9-aa6f-295ed41142f7
+
