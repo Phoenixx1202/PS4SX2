@@ -690,6 +690,13 @@ void VMManager::LoadCoreSettings(SettingsInterface& si)
 
 	// Remove any user-specified hacks in the config (we don't want stale/conflicting values when it's globally disabled).
 	EmuConfig.GS.MaskUserHacks();
+#if defined(PCSX2_PS4_VM_BOOT)
+	// The PS4 frontend keeps its selected GS options through MaskUserHacks(), but still wants
+	// per-game automatic GS fixes (for example GTA SA's GameDB autoFlush setting).
+	// UserHacks remains non-masked; clearing this policy flag here lets ApplyGameFixes() apply
+	// GameDB fixes instead of treating the frontend's selected options as manual overrides.
+	EmuConfig.GS.ManualUserHacks = false;
+#endif
 	EmuConfig.GS.MaskUpscalingHacks();
 
 	// Force MTVU off when playing back GS dumps, it doesn't get used.

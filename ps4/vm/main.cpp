@@ -646,9 +646,8 @@ static void* RunVM(void*)
 	settings->SetBoolValue("EmuCore/GS", "DisableShaderCache", disable_shader_cache);
 	settings->SetBoolValue("EmuCore/GS", "HWSpinGPUForReadbacks", false);
 	settings->SetBoolValue("EmuCore/GS", "HWSpinCPUForReadbacks", false);
-	// (AI-assisted) Hardware palette conversion, frame preloading, and partial invalidation bypass
-	// reduce CPU stalls in 1x/2x upscale; needs proper testing.
-	settings->SetBoolValue("EmuCore/GS", "paltex", true);
+	// Let GameDB choose palette conversion per title; forcing it may reduce performance.
+	settings->SetBoolValue("EmuCore/GS", "paltex", false);
 	settings->SetBoolValue("EmuCore/GS", "preload_frame_with_gs_data", true);
 	// Keep the PS4's explicit GS tuning below active. With UserHacks=false,
 	// VMManager::LoadCoreSettings calls MaskUserHacks() and clears paltex,
