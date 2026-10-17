@@ -3734,9 +3734,11 @@ ORBIS_M2(0);
 		}
 		else
 		{
+			{ PS4_GS_SCOPE(TextureSourceLookup);
 			{ ORBIS_SEC_BEGIN(); src = tex_psm.depth ? g_texture_cache->LookupDepthSource(true, TEX0, m_cached_ctx.TEXA, MIP_CLAMP, tmm.coverage, possible_shuffle, m_vt.IsLinear(), m_cached_ctx.FRAME, req_color, req_alpha)
 			                    : g_texture_cache->LookupSource(true, TEX0, m_cached_ctx.TEXA, MIP_CLAMP, tmm.coverage, (GSConfig.HWMipmap || GSConfig.TriFilter == TriFiltering::Forced) ? &hash_lod_range : nullptr,
 			                         possible_shuffle, m_vt.IsLinear(), m_cached_ctx.FRAME, req_color, req_alpha); ORBIS_SEC_END(0); }
+			}
 
 			if (!src) [[unlikely]]
 			{
@@ -3905,9 +3907,11 @@ ORBIS_M2(0);
 		ZBUF_TEX0.TBW = m_cached_ctx.FRAME.FBW;
 		ZBUF_TEX0.PSM = m_cached_ctx.ZBUF.PSM;
 
+		{ PS4_GS_SCOPE(DepthTargetLookup);
 		{ ORBIS_SEC_BEGIN(); ds = g_texture_cache->LookupDrawTarget(ZBUF_TEX0, t_size, target_scale, GSTextureCache::DepthStencil,
 			m_cached_ctx.DepthWrite(), 0, force_preload, preserve_depth, preserve_depth, unclamped_draw_rect, IsPossibleChannelShuffle(), is_possible_mem_clear && ZBUF_TEX0.TBP0 != m_cached_ctx.FRAME.Block(), !no_rt,
 			src, nullptr, -1); ORBIS_SEC_END(2); }
+		}
 
 		ZBUF_TEX0.TBW = m_channel_shuffle ? src->m_from_target_TEX0.TBW : m_cached_ctx.FRAME.FBW;
 
@@ -4167,9 +4171,11 @@ ORBIS_M2(0);
 		// Of course if this size is different (in width) or this is a shuffle happening, this will be bypassed.
 		const bool preserve_downscale_draw = (GSConfig.UserHacks_NativeScaling != GSNativeScaling::Off && ((std::abs(scale_draw) == 1 && !scaled_copy) || (scale_draw == 0 && src && src->m_from_target && src->m_from_target->m_downscaled))) || is_possible_mem_clear == ClearType::ClearWithDraw;
 
+		{ PS4_GS_SCOPE(ColorTargetLookup);
 		{ ORBIS_SEC_BEGIN(); rt = g_texture_cache->LookupDrawTarget(FRAME_TEX0, t_size, ((src && src->m_scale != 1) && (GSConfig.UserHacks_NativeScaling == GSNativeScaling::Normal || GSConfig.UserHacks_NativeScaling == GSNativeScaling::NormalUpscaled) && !possible_shuffle) ? GetTextureScaleFactor() : target_scale, GSTextureCache::RenderTarget, true,
 			fm, force_preload, preserve_rt_rgb, preserve_rt_alpha, lookup_rect, possible_shuffle, is_possible_mem_clear && FRAME_TEX0.TBP0 != m_cached_ctx.ZBUF.Block(),
 			GSConfig.UserHacks_NativeScaling != GSNativeScaling::Off && preserve_downscale_draw && is_possible_mem_clear != ClearType::NormalClear, src, ds, (no_ds || !ds) ? -1 : (m_cached_ctx.ZBUF.Block() - ds->m_TEX0.TBP0)); ORBIS_SEC_END(1); }
+		}
 
 		// Draw skipped because it was a clear and there was no target.
 		if (!rt)
@@ -5326,7 +5332,10 @@ ORBIS_M2(0);
 	const GSVector4i real_rect = m_r;
 
 	if (!skip_draw)
-		{ ORBIS_SEC_BEGIN(); DrawPrims(rt, ds, src, tmm); ORBIS_SEC_END(4); }
+	{
+		PS4_GS_SCOPE(DrawPrims);
+		ORBIS_SEC_BEGIN(); DrawPrims(rt, ds, src, tmm); ORBIS_SEC_END(4);
+	}
 
 
 	// Temporary source *must* be invalidated before normal, because otherwise it'll be double freed.

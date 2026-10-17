@@ -646,15 +646,14 @@ static void* RunVM(void*)
 	settings->SetBoolValue("EmuCore/GS", "DisableShaderCache", disable_shader_cache);
 	settings->SetBoolValue("EmuCore/GS", "HWSpinGPUForReadbacks", false);
 	settings->SetBoolValue("EmuCore/GS", "HWSpinCPUForReadbacks", false);
-	// (AI-assisted) Hardware palette conversion, frame preloading, and partial invalidation bypass
-	// reduce CPU stalls in 1x/2x upscale; needs proper testing.
-	settings->SetBoolValue("EmuCore/GS", "paltex", true);
+	// Let GameDB choose palette conversion per title; forcing it may reduce performance.
+	settings->SetBoolValue("EmuCore/GS", "paltex", false);
 	settings->SetBoolValue("EmuCore/GS", "preload_frame_with_gs_data", true);
-	// (AI-assisted) Let per-game GameDB HW fixes apply (autoFlush, halfPixelOffset, etc) to fix
-	// shadows/post-processing without forcing manual overrides. GTA SA (SLUS-20946) needs
-	// autoFlush=1 + halfPixelOffset=5. DisablePartialInvalidation=true stays as PS4 perf
-	// default when GameDB has no entry. Needs proper testing across titles.
-	settings->SetBoolValue("EmuCore/GS", "UserHacks", false);
+	// Keep the PS4's explicit GS tuning below active. With UserHacks=false,
+	// VMManager::LoadCoreSettings calls MaskUserHacks() and clears paltex,
+	// frame preloading, and DisablePartialInvalidation before the GS starts.
+	// Per-game GameDB fixes are applied separately during VM startup.
+	settings->SetBoolValue("EmuCore/GS", "UserHacks", true);
 	settings->SetBoolValue("EmuCore/GS", "UserHacks_DisablePartialInvalidation", true);
 	// (AI-assisted) Triple VideoOut (ImageCount=3) with VsyncQueueSize=3 queues 2 extra frames
 	// and can show stale buffers as ghosting. Use 2 (upstream default) to reduce latency
