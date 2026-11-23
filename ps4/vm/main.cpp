@@ -63,10 +63,11 @@
 static int s_log = -1;
 
 #if defined(PCSX2_PS4_VM_BOOT_JIT)
-extern std::atomic<u32> g_orbis_rec_compiles, g_orbis_rec_discards, g_orbis_rec_page_resets, g_orbis_rec_full_resets;
+extern std::atomic<u32> g_orbis_rec_compiles, g_orbis_rec_discards, g_orbis_rec_page_resets, g_orbis_rec_full_resets, g_orbis_rec_faults;
 extern bool g_ps4_vtlb_register_cache;
 extern bool g_ps4_vtlb_bulk_register_cache;
 extern bool g_ps4_skip_smc_checks;
+extern bool g_ps4_page_smc;
 extern bool g_ps4_bytecopy_fusion;
 extern std::atomic<int> g_orbis_waitloop_ext;
 extern u64 g_ps4_vtlb_cached_quad_reads, g_ps4_vtlb_cached_writes;
@@ -353,9 +354,10 @@ void VMHostPoll()
 		PS4EEEventProfile::s_sampling.gap_pending = false;
 		PS4EEEventProfile::LogGaps(interval);
 #if defined(PCSX2_PS4_VM_BOOT_JIT)
-		ProbeLog("EE JIT cumulative: compiles=%u discards=%u page_resets=%u full_resets=%u\n",
+		ProbeLog("EE JIT cumulative: compiles=%u discards=%u page_resets=%u full_resets=%u write_faults=%u\n",
 			g_orbis_rec_compiles.load(std::memory_order_relaxed), g_orbis_rec_discards.load(std::memory_order_relaxed),
-			g_orbis_rec_page_resets.load(std::memory_order_relaxed), g_orbis_rec_full_resets.load(std::memory_order_relaxed));
+			g_orbis_rec_page_resets.load(std::memory_order_relaxed), g_orbis_rec_full_resets.load(std::memory_order_relaxed),
+			g_orbis_rec_faults.load(std::memory_order_relaxed));
 		ProbeLog("VTLB cached access sites compiled: quad_reads=%llu writes=%llu (not runtime calls)\n",
 			static_cast<unsigned long long>(g_ps4_vtlb_cached_quad_reads),
 			static_cast<unsigned long long>(g_ps4_vtlb_cached_writes));
@@ -769,6 +771,9 @@ static void* RunVM(void*)
 	ProbeLog("EE JIT manual SMC validation: %s (%s)\n",
 		g_ps4_skip_smc_checks ? "relaxed (skip per-block checks, manual protection only)" : "enabled for all games (exact block checks)",
 		g_ps4_skip_smc_checks ? "enabled by /data/PS4SX2/vm-skip-smc" : "exact (reverted Fase 3-B)");
+	g_ps4_page_smc = access("/data/PS4SX2/vm-page-smc", F_OK) == 0;
+	ProbeLog("EE JIT page write-protection SMC: %s\n",
+		g_ps4_page_smc ? "enabled by /data/PS4SX2/vm-page-smc (unwritten code pages skip checks)" : "disabled (all pages manual)");
 	// (AI-assisted) Exact SMC mode must inspect code on every loop iteration.
 	g_ps4_bytecopy_fusion = g_ps4_skip_smc_checks && access("/data/PS4SX2/vm-no-bytecopy-fusion", F_OK) != 0;
 	g_ps4_bytecopy_blocks = g_ps4_bytecopy_runs = g_ps4_bytecopy_bytes = 0;
@@ -807,6 +812,7 @@ static void* RunVM(void*)
 		settings->SetIntValue("EmuCore/Speedhacks", "EECycleSkip", 0);
 #if defined(PCSX2_PS4_VM_BOOT_JIT)
 		g_ps4_skip_smc_checks = false;
+		g_ps4_page_smc = false;
 		g_ps4_bytecopy_fusion = false;
 		g_ps4_vtlb_register_cache = false;
 		g_ps4_vtlb_bulk_register_cache = false;

@@ -73,6 +73,9 @@ std::atomic<int> g_orbis_rec_nocount{0};
 // on entry. The launcher may omit that prologue to measure its full cost.
 // Self-modifying guest code needs proper console testing before this is safe.
 bool g_ps4_skip_smc_checks = false;
+// Upstream page write-protection for code pages: blocks on unwritten pages run
+// without byte checks; a write fault drops the page back to manual checks.
+bool g_ps4_page_smc = false;
 static int s_orbis_rec_nocount = 0;
 // vk-285-28: how much of the EE code cache is in use (GSRenderer.cpp, [rec] line).
 size_t OrbisRecEEUsed(size_t* size);
@@ -2565,8 +2568,10 @@ static void memory_protect_recompiled_code(u32 startpc, u32 size)
 	const bool contains_thread_stack = ((startpc >> 12) == 0x81) || ((startpc >> 12) == 0x80001);
 
 	// note: blocks are guaranteed to reside within the confines of a single page.
-	const vtlb_ProtectionMode PageType = (mmap_GetRamPageInfo(inpage_ptr) == ProtMode_NotRequired) ? ProtMode_NotRequired : ProtMode_Manual;
-	(void)contains_thread_stack;
+	const vtlb_ProtectionMode RamPageType = mmap_GetRamPageInfo(inpage_ptr);
+	const vtlb_ProtectionMode PageType = g_ps4_page_smc ?
+		(contains_thread_stack ? ProtMode_Manual : RamPageType) :
+		(RamPageType == ProtMode_NotRequired ? ProtMode_NotRequired : ProtMode_Manual);
 
 	switch (PageType)
 	{
