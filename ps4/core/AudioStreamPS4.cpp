@@ -128,16 +128,13 @@ namespace
 
 			// (AI-assisted) Match DolphinPS4's main-port PCM16 and explicit 0 dB
 			// gain. The upstream queue already applies the user's volume/mute.
-			RefreshPortState();
-			ProbeLog("PS4 audio port before gain: result=%#x output=%#x channels=%u volume_raw=%d flags=%#llx\n",
-				s_output.port_result.load(), s_output.port_output.load(), s_output.port_channels.load(),
-				s_output.port_volume.load(), static_cast<unsigned long long>(s_output.port_flags.load()));
+			// No sceAudioOutGetPortState here: on console it crashed right after open
+			// (sync log 2026-11-23), and the working intro player never calls it.
 			int32_t levels[2] = {32768, 32768};
 			const int volume_result = sceAudioOutSetVolume(m_handle, 0x3, levels);
 			ProbeLog("PS4 audio: set_volume=%#x left=32768 right=32768 (0 dB)\n", volume_result);
 			if (volume_result < 0)
 				return Fail("sceAudioOutSetVolume", volume_result, error);
-			RefreshPortState();
 
 			BaseInitialize(&StereoSampleReaderImpl, stretch_enabled);
 			ProbeLog("PS4 audio stretch: sequence_ms=%u seek_ms=%u overlap_ms=%u quick_seek=%u target_ms=%u\n",
@@ -202,21 +199,6 @@ namespace
 				produced += written;
 			}
 			return true;
-		}
-
-		void RefreshPortState()
-		{
-			OrbisAudioOutPostState state{};
-			static_assert(sizeof(state) == 32);
-			const int result = sceAudioOutGetPortState(m_handle, &state);
-			s_output.port_result.store(result, std::memory_order_relaxed);
-			// A failed query must not look like a new disconnected/muted state.
-			if (result < 0)
-				return;
-			s_output.port_output.store(state.output, std::memory_order_relaxed);
-			s_output.port_channels.store(state.channel, std::memory_order_relaxed);
-			s_output.port_volume.store(state.volume, std::memory_order_relaxed);
-			s_output.port_flags.store(state.flag, std::memory_order_relaxed);
 		}
 
 		static bool Fail(const char* operation, int result, Error* error)
@@ -306,7 +288,6 @@ namespace
 						std::memory_order_relaxed);
 					s_output.invalid_samples.store(invalid_samples, std::memory_order_relaxed);
 					s_output.clipped_samples.store(clipped_samples, std::memory_order_relaxed);
-					RefreshPortState();
 					window_frames = 0;
 					window_peak = window_energy = 0.0f;
 				}
